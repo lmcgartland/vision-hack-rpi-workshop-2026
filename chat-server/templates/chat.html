@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ server_name }} Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 10px;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            color: #1565c0;  /* TODO: Change this color! */
+            text-align: center;
+            padding: 12px 0;
+            font-size: 20px;
+        }
+        #username-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        #username-bar input {
+            flex: 1;
+            font-size: 16px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            outline: none;
+        }
+        #username-bar input:focus {
+            border-color: #1565c0;
+        }
+        #messages {
+            flex: 1;
+            min-height: 50vh;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+            padding: 10px;
+            margin: 0 0 10px 0;
+            border-radius: 12px;
+            background: white;
+        }
+        .msg {
+            margin: 6px 0;
+            padding: 10px 12px;
+            background: #e3f2fd;
+            border-radius: 10px;
+            animation: slideIn 0.2s ease;
+        }
+        .msg .user {
+            font-weight: bold;
+            color: #1565c0;
+        }
+        .msg .server {
+            font-size: 0.75em;
+            color: #999;
+            margin-left: 4px;
+        }
+        .msg .text {
+            margin-top: 3px;
+            color: #333;
+            line-height: 1.4;
+        }
+        #input-bar {
+            display: flex;
+            gap: 8px;
+        }
+        #input-bar input {
+            flex: 1;
+            font-size: 16px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            outline: none;
+        }
+        #input-bar input:focus {
+            border-color: #1565c0;
+        }
+        #input-bar button {
+            font-size: 16px;
+            padding: 12px 20px;
+            background: #1565c0;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #input-bar button:active {
+            transform: scale(0.96);
+        }
+        .status {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            padding: 6px 0;
+        }
+        .status .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            margin-right: 4px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+    </style>
+</head>
+<body>
+    <h2>💬 {{ server_name }} Chat</h2>
+
+    <div id="username-bar">
+        <input type="text" id="username" placeholder="Your name" autocomplete="off">
+    </div>
+
+    <div id="messages">
+        <div class="status">
+            <span class="dot"></span>
+            Connected to {{ server_name }}
+        </div>
+    </div>
+
+    <div id="input-bar">
+        <input type="text" id="msgInput" placeholder="Type a message..."
+               onkeypress="if(event.key==='Enter')sendMsg()" autocomplete="off">
+        <button onclick="sendMsg()">Send</button>
+    </div>
+
+    <div class="status" id="poll-status">
+        <span class="dot"></span>
+        Polling every 2 seconds
+    </div>
+
+    <script>
+        let seen = 0;
+
+        // Ask the server for new messages every 2 seconds
+        setInterval(fetchMessages, 2000);
+
+        function fetchMessages() {
+            fetch('/api/messages?after=' + seen)
+                .then(r => r.json())
+                .then(msgs => {
+                    msgs.forEach(m => {
+                        let div = document.createElement('div');
+                        div.className = 'msg';
+                        div.innerHTML =
+                            '<div>' +
+                                '<span class="user">' + escapeHtml(m.user) + '</span>' +
+                                '<span class="server">@' + escapeHtml(m.server) + '</span>' +
+                            '</div>' +
+                            '<div class="text">' + escapeHtml(m.text) + '</div>';
+                        document.getElementById('messages').appendChild(div);
+                    });
+                    seen += msgs.length;
+                    if (msgs.length > 0) {
+                        let box = document.getElementById('messages');
+                        box.scrollTop = box.scrollHeight;
+                    }
+                })
+                .catch(err => {
+                    console.log('Poll failed:', err);
+                });
+        }
+
+        function sendMsg() {
+            let user = document.getElementById('username').value.trim() || 'Anonymous';
+            let text = document.getElementById('msgInput').value.trim();
+            if (!text) return;
+
+            fetch('/api/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({user: user, text: text})
+            })
+            .then(r => r.json())
+            .then(() => {
+                document.getElementById('msgInput').value = '';
+                fetchMessages();  // Immediately fetch to show our own message
+            })
+            .catch(err => {
+                console.log('Send failed:', err);
+            });
+        }
+
+        function escapeHtml(text) {
+            let div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load any existing messages on page load
+        fetchMessages();
+
+        // Auto-focus the message input
+        document.getElementById('msgInput').focus();
+    </script>
+</body>
+</html>
