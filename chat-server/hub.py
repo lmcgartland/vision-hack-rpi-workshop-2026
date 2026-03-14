@@ -106,13 +106,19 @@ DASHBOARD_HTML = """
                     document.getElementById('msg-count').textContent = data.message_count;
 
                     let sl = document.getElementById('server-list');
+                    function esc(s) {
+                        let d = document.createElement('div');
+                        d.textContent = s;
+                        return d.innerHTML;
+                    }
+
                     if (data.servers.length === 0) {
                         sl.innerHTML = '<div class="empty">No servers registered yet</div>';
                     } else {
                         sl.innerHTML = data.servers.map(s =>
                             '<div class="server">' +
-                                '<div><span class="name">' + s.name + '</span></div>' +
-                                '<div><span class="url">' + s.url + '</span></div>' +
+                                '<div><span class="name">' + esc(s.name) + '</span></div>' +
+                                '<div><span class="url">' + esc(s.url) + '</span></div>' +
                                 '<div><span class="status">● online</span></div>' +
                             '</div>'
                         ).join('');
@@ -124,9 +130,9 @@ DASHBOARD_HTML = """
                     } else {
                         ml.innerHTML = data.recent_messages.map(m =>
                             '<div class="msg">' +
-                                '<span class="user">' + m.user + '</span> ' +
-                                '<span class="srv">@' + m.server + '</span>' +
-                                '<div class="text">' + m.text + '</div>' +
+                                '<span class="user">' + esc(m.user) + '</span> ' +
+                                '<span class="srv">@' + esc(m.server) + '</span>' +
+                                '<div class="text">' + esc(m.text) + '</div>' +
                             '</div>'
                         ).join('');
                         ml.scrollTop = ml.scrollHeight;

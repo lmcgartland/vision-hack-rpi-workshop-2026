@@ -4,8 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "bundle": "mkdir -p public && tar czf public/chat-server.tar.gz chat-server/app.py chat-server/templates chat-server/start.sh chat-server/requirements.txt",
+    "dev": "npm run bundle && vite",
+    "build": "npm run bundle && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -28,7 +28,7 @@ def get_messages():
 def send_message():
     """The browser says: 'Here's a new message' — we save it and tell the hub."""
     data = request.json
-    msg = {'user': data['user'], 'text': data['text'],
+    msg = {'user': data.get('user', 'Anonymous'), 'text': data.get('text', ''),
            'server': MY_NAME, 'time': time.time()}
     messages.append(msg)
     try:
